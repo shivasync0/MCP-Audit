@@ -319,9 +319,55 @@
         </ul>
     </section>
 
+    <!-- DEVELOPER INTEGRATION SECTION -->
+    <section class="section" style="border-top: 1px solid var(--ink);">
+        <h2 class="section-header">Developer Integration</h2>
+        <p class="section-text">
+            Built for engineers. Integrate MCP-Audit directly into your CI/CD pipelines and infrastructure as code.
+        </p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            
+            <div class="card" style="border: none; padding: 0;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">1. CI/CD Pipeline (GitHub Actions)</h3>
+                <p style="margin-bottom: 12px;">Prevent vulnerable MCP tools from being merged by adding our CLI to your pre-commit hooks or CI/CD pipelines.</p>
+                <div class="code-block" style="font-size: 12px; padding: 16px;">
+name: MCP Security Scan
+on: [push, pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: pip install mcp-audit
+      - run: mcp-audit scan ./mcp-servers/
+                </div>
+            </div>
+
+            <div class="card" style="border: none; padding: 0;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">2. Python Gateway Integration</h3>
+                <p style="margin-bottom: 12px;">Programmatically instantiate the Gateway Proxy to wrap your existing MCP Server deployments in Python.</p>
+                <div class="code-block" style="font-size: 12px; padding: 16px;">
+from mcp_audit.gateway import SecurityGatewayProxy
+from mcp_audit.gateway.forwarder import ForwardingEngine
+
+proxy = SecurityGatewayProxy()
+forwarder = ForwardingEngine("npx @modelcontextprotocol/server-postgres")
+
+# Intercept and forward RPC requests natively
+async def handle_request(rpc_req):
+    if proxy.evaluate_request(rpc_req):
+        return await forwarder.forward_request(rpc_req)
+                </div>
+            </div>
+
+        </div>
+    </section>
+
     <!-- HOW TO USE -->
-    <section class="section">
-        <h2 class="section-header">How to Use</h2>
+    <section class="section" style="border-top: 1px solid var(--ink);">
+        <h2 class="section-header">Enterprise Deployment</h2>
         <p class="section-text">Get started locally in minutes using Docker Compose.</p>
         <div class="code-block">
 # 1. Clone the repository
