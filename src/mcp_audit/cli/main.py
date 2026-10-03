@@ -8,6 +8,10 @@ from rich.table import Table
 from mcp_audit.parser.mcp_parser import MCPParser
 from mcp_audit.scanner.engine import ScannerEngine
 from mcp_audit.scanner.suppressions import SuppressionEngine
+from mcp_audit.graph.builder import SecurityGraphBuilder
+from mcp_audit.scanner.risk import RiskEngine
+from rich.panel import Panel
+from rich.text import Text
 
 app = typer.Typer(
     name="mcp-audit",
@@ -46,6 +50,22 @@ def scan(
         
         # Apply suppressions
         findings = suppression_engine.apply(raw_findings, tools_map)
+        
+        # Build Security Graph and Calculate Risk
+        graph_builder = SecurityGraphBuilder()
+        graph_builder.build_from_server(server, findings)
+        
+        risk_engine = RiskEngine()
+        scores = risk_engine.calculate_scores(server, findings, graph_builder)
+        
+        # Display Risk Assessment
+        risk_text = Text()
+        risk_text.append(f"Security Risk:    {scores['security_risk']:>5.1f}/100\n", style="bold red" if scores['security_risk'] > 50 else "bold yellow")
+        risk_text.append(f"Trust Score:      {scores['trust_score']:>5.1f}/100\n", style="bold green" if scores['trust_score'] > 50 else "bold yellow")
+        risk_text.append(f"Exposure Score:   {scores['exposure_score']:>5.1f}/100\n", style="bold red" if scores['exposure_score'] > 50 else "bold yellow")
+        risk_text.append(f"Operational Risk: {scores['operational_risk']:>5.1f}/100", style="bold yellow")
+        
+        console.print(Panel(risk_text, title="RISK ASSESSMENT", expand=False))
         
         # Handle baseline mode
         existing_findings_count = 0
