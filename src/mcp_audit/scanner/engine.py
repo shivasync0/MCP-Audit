@@ -8,6 +8,7 @@ from mcp_audit.scanner.rules.execution import ShellExecutionRule
 from mcp_audit.scanner.rules.filesystem import ArbitraryFilesystemAccessRule
 from mcp_audit.scanner.rules.network import ArbitraryNetworkAccessRule
 from mcp_audit.scanner.rules.credential import CredentialAccessRule
+from mcp_audit.scanner.rules.prompts import PromptInjectionRiskRule, SensitiveDataPromptRule
 
 class ScannerEngine:
     """Evaluates an MCP Server against a suite of security rules."""
@@ -23,6 +24,8 @@ class ScannerEngine:
             ArbitraryFilesystemAccessRule,
             ArbitraryNetworkAccessRule,
             CredentialAccessRule,
+            PromptInjectionRiskRule,
+            SensitiveDataPromptRule,
         ]
         
         if custom_rules:
