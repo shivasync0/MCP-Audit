@@ -160,5 +160,15 @@ def scan(
         console.print(f"[bold red]Error parsing or scanning:[/bold red] {str(e)}")
         raise typer.Exit(code=1)
 
+@app.command()
+def proxy(
+    port: int = typer.Option(8000, help="Port to run the gateway on"),
+    host: str = typer.Option("127.0.0.1", help="Host to bind the gateway to")
+):
+    """Start the MCP-Audit Runtime Security Gateway."""
+    import uvicorn
+    console.print(f"[bold green]Starting Runtime Security Gateway on {host}:{port}[/bold green]")
+    uvicorn.run("mcp_audit.gateway.app:app", host=host, port=port, reload=True)
+
 if __name__ == "__main__":
     app()
