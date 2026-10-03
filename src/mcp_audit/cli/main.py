@@ -11,6 +11,7 @@ from mcp_audit.scanner.suppressions import SuppressionEngine
 from mcp_audit.graph.builder import SecurityGraphBuilder
 from mcp_audit.scanner.risk import RiskEngine
 from mcp_audit.scanner.policy import PolicyEngine, PolicyAction
+from mcp_audit.scanner.remediation import RemediationEngine
 from rich.panel import Panel
 from rich.text import Text
 
@@ -26,6 +27,7 @@ def scan(
     target: str = typer.Argument(..., help="Path to MCP server configuration (e.g., mcp.json)"),
     baseline: str = typer.Option(None, help="Baseline JSON file for differential scanning"),
     baseline_save: str = typer.Option(None, help="Save the current findings as a new baseline"),
+    ai_remediate: bool = typer.Option(False, "--ai-remediate", help="Generate AI-assisted remediation suggestions for findings"),
 ):
     """Scan an MCP server configuration for security risks."""
     console.print(f"[bold blue]Scanning target:[/bold blue] {target}")
@@ -152,6 +154,16 @@ def scan(
             )
             
         console.print(table)
+        
+        # Display AI Remediations if requested
+        if ai_remediate and findings:
+            console.print("\n[bold cyan]AI-Assisted Remediation Suggestions:[/bold cyan]")
+            remediation_engine = RemediationEngine()
+            for f in findings:
+                tool = next((t for t in server.tools if t.id == f.tool_id), None)
+                target_str = f"Tool: {tool.name}" if tool else "Server"
+                suggestion = remediation_engine.generate_remediation(f, target_str)
+                console.print(f"- {suggestion}")
         
     except FileNotFoundError:
         console.print(f"[bold red]Error:[/bold red] File not found: {target}")
