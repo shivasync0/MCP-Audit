@@ -202,6 +202,52 @@ function App() {
 
       </main>
 
+      {/* DEVELOPER INTEGRATION SECTION */}
+      <section className="section" style={{ borderTop: '1px solid var(--ink)' }}>
+          <h2 className="section-header">Developer Integration</h2>
+          <p className="section-text">
+              Built for engineers. Integrate MCP-Audit directly into your CI/CD pipelines and infrastructure as code.
+          </p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+              
+              <div className="card" style={{ border: 'none', padding: 0 }}>
+                  <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>1. CI/CD Pipeline (GitHub Actions)</h3>
+                  <p style={{ marginBottom: '12px', color: 'var(--ink-soft)' }}>Prevent vulnerable MCP tools from being merged by adding our CLI to your pre-commit hooks or CI/CD pipelines.</p>
+                  <div className="code-block" style={{ fontSize: '12px', padding: '16px', whiteSpace: 'pre-wrap' }}>
+{`name: MCP Security Scan
+on: [push, pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: pip install mcp-audit
+      - run: mcp-audit scan ./mcp-servers/`}
+                  </div>
+              </div>
+
+              <div className="card" style={{ border: 'none', padding: 0 }}>
+                  <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>2. Python Gateway Integration</h3>
+                  <p style={{ marginBottom: '12px', color: 'var(--ink-soft)' }}>Programmatically instantiate the Gateway Proxy to wrap your existing MCP Server deployments in Python.</p>
+                  <div className="code-block" style={{ fontSize: '12px', padding: '16px', whiteSpace: 'pre-wrap' }}>
+{`from mcp_audit.gateway import SecurityGatewayProxy
+from mcp_audit.gateway.forwarder import ForwardingEngine
+
+proxy = SecurityGatewayProxy()
+forwarder = ForwardingEngine("npx @modelcontextprotocol/server-postgres")
+
+# Intercept and forward RPC requests natively
+async def handle_request(rpc_req):
+    if proxy.evaluate_request(rpc_req):
+        return await forwarder.forward_request(rpc_req)`}
+                  </div>
+              </div>
+
+          </div>
+      </section>
+
       {/* MERIDIAN VINTAGE FOOTER */}
       <footer className="footer">
           <div className="footer__content">
