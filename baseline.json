@@ -1,0 +1,14 @@
+{
+  "findings": [
+    {
+      "rule_id": "SEC-PROTO-008",
+      "tool_name": "malformed_tool",
+      "severity": "medium"
+    },
+    {
+      "rule_id": "SEC-PROTO-004",
+      "tool_name": "schema_bomb_tool",
+      "severity": "high"
+    }
+  ]
+}

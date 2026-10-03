@@ -30,6 +30,7 @@ dependencies = [
     "rich>=13.0",
     "typer>=0.9",
     "networkx>=3.0",  # For Security Graph
+    "pyyaml>=6.0",    # For suppression files
 ]
 
 [project.optional-dependencies]

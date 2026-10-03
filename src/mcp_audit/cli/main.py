@@ -1,10 +1,13 @@
-"""Main entry point for MCP-Audit."""
 import typer
+import json
+import os
+from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
 from mcp_audit.parser.mcp_parser import MCPParser
 from mcp_audit.scanner.engine import ScannerEngine
+from mcp_audit.scanner.suppressions import SuppressionEngine
 
 app = typer.Typer(
     name="mcp-audit",
@@ -17,6 +20,7 @@ console = Console()
 def scan(
     target: str = typer.Argument(..., help="Path to MCP server configuration (e.g., mcp.json)"),
     baseline: str = typer.Option(None, help="Baseline JSON file for differential scanning"),
+    baseline_save: str = typer.Option(None, help="Save the current findings as a new baseline"),
 ):
     """Scan an MCP server configuration for security risks."""
     console.print(f"[bold blue]Scanning target:[/bold blue] {target}")
@@ -33,11 +37,60 @@ def scan(
         console.print(f"  - Tools: {len(server.tools)}")
         console.print(f"  - Resources: {len(server.resources)}")
         
-        # Scan the server
-        findings = scanner.scan_server(server)
+        # Load suppressions if any
+        suppression_engine = SuppressionEngine()
+        tools_map = {str(t.id): t.name for t in server.tools}
         
+        # Scan the server
+        raw_findings = scanner.scan_server(server)
+        
+        # Apply suppressions
+        findings = suppression_engine.apply(raw_findings, tools_map)
+        
+        # Handle baseline mode
+        existing_findings_count = 0
+        if baseline and os.path.exists(baseline):
+            with open(baseline, "r") as f:
+                baseline_data = json.load(f)
+                # For simplicity, we diff based on rule_id + tool name
+                baseline_signatures = set()
+                for bf in baseline_data.get("findings", []):
+                    baseline_signatures.add(f"{bf['rule_id']}:{bf.get('tool_name', 'Server')}")
+            
+            new_findings = []
+            for f in findings:
+                tool = next((t for t in server.tools if t.id == f.tool_id), None)
+                target_str = tool.name if tool else "Server"
+                sig = f"{f.rule_id}:{target_str}"
+                
+                if sig in baseline_signatures:
+                    existing_findings_count += 1
+                else:
+                    new_findings.append(f)
+            findings = new_findings
+        
+        # Save baseline if requested
+        if baseline_save:
+            baseline_output = {"findings": []}
+            for f in findings:
+                tool = next((t for t in server.tools if t.id == f.tool_id), None)
+                target_str = tool.name if tool else "Server"
+                baseline_output["findings"].append({
+                    "rule_id": f.rule_id,
+                    "tool_name": target_str,
+                    "severity": f.severity.value
+                })
+            with open(baseline_save, "w") as f:
+                json.dump(baseline_output, f, indent=2)
+            console.print(f"[green]Saved {len(findings)} findings to baseline {baseline_save}[/green]")
+            return
+
+        suppressed_count = len(raw_findings) - len(findings) - existing_findings_count
+        if suppressed_count > 0 or existing_findings_count > 0:
+            console.print(f"[dim]Filtered out {suppressed_count} suppressed and {existing_findings_count} baseline findings.[/dim]")
+            
         if not findings:
-            console.print("\n[bold green]✓ Scan completed - no findings.[/bold green]")
+            console.print("\n[bold green]Scan completed - no new findings.[/bold green]")
             return
             
         console.print(f"\n[bold red]Scan completed - {len(findings)} findings:[/bold red]")
