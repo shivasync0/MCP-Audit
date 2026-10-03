@@ -1,13 +1,13 @@
-"""Runtime Security Proxy for MCP-Audit."""
-
 from typing import Dict, Any, Tuple
 from mcp_audit.gateway.models import JSONRPCRequest, JSONRPCResponse
+from mcp_audit.scanner.policy import PolicyAction
 import re
 
 class SecurityGatewayProxy:
     """Intercepts and inspects MCP JSON-RPC messages at runtime."""
     
-    def __init__(self):
+    def __init__(self, tool_policies: Dict[str, PolicyAction] = None):
+        self.tool_policies = tool_policies or {}
         # Basic regexes for dynamic payload inspection (DAST)
         self.COMMAND_INJECTION_PATTERN = re.compile(r'(&&|;|\|\||`|\$\(|\n)', re.IGNORECASE)
         self.PATH_TRAVERSAL_PATTERN = re.compile(r'(\.\./|\.\.\\)', re.IGNORECASE)
@@ -27,8 +27,23 @@ class SecurityGatewayProxy:
         return True, "Allowed"
 
     def _inspect_tool_call(self, request: JSONRPCRequest) -> Tuple[bool, str]:
-        """Inspects parameters sent to a tool for malicious payloads."""
-        if not request.params or "arguments" not in request.params:
+        """Inspects parameters sent to a tool for malicious payloads and checks static policy."""
+        if not request.params or "name" not in request.params:
+            return False, "Missing tool name"
+            
+        tool_name = request.params["name"]
+        
+        # 1. Check static policy enforcement
+        policy_action = self.tool_policies.get(tool_name, PolicyAction.ALLOW)
+        if policy_action == PolicyAction.DENY:
+            return False, f"Static Policy Enforcement: Tool '{tool_name}' is explicitly denied."
+        elif policy_action == PolicyAction.REQUIRE_APPROVAL:
+            # In a real system, this might trigger an out-of-band approval workflow (e.g. Slack/Teams)
+            # For this interceptor, we block it and inform the user it needs approval.
+            return False, f"Static Policy Enforcement: Tool '{tool_name}' requires explicit approval."
+
+        # 2. Dynamic payload inspection (DAST)
+        if "arguments" not in request.params:
             return True, "No arguments to inspect"
             
         args = request.params["arguments"]

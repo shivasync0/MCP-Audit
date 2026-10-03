@@ -9,6 +9,10 @@ from mcp_audit.gateway.proxy import SecurityGatewayProxy
 app = FastAPI(title="MCP-Audit Security Gateway")
 proxy = SecurityGatewayProxy()
 
+def configure_proxy(tool_policies: dict):
+    """Dynamically configure the proxy (e.g. from the CLI)."""
+    proxy.tool_policies = tool_policies
+
 # This is a basic HTTP interceptor. In a real environment, MCP often uses stdio or SSE.
 # This represents the HTTP/SSE variant of the proxy.
 

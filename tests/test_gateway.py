@@ -45,3 +45,32 @@ def test_gateway_proxy_dast():
     is_allowed, reason = proxy.inspect_request(trav_req)
     assert is_allowed is False
     assert "Path traversal" in reason
+
+def test_gateway_static_policy_enforcement():
+    from mcp_audit.scanner.policy import PolicyAction
+    
+    # Initialize proxy with a known static policy (e.g. from static scan)
+    tool_policies = {
+        "bad_tool": PolicyAction.DENY,
+        "warn_tool": PolicyAction.REQUIRE_APPROVAL,
+        "good_tool": PolicyAction.ALLOW
+    }
+    
+    proxy = SecurityGatewayProxy(tool_policies=tool_policies)
+    
+    # 1. Blocked by DENY policy
+    req1 = JSONRPCRequest(id=1, method="tools/call", params={"name": "bad_tool", "arguments": {}})
+    is_allowed, reason = proxy.inspect_request(req1)
+    assert is_allowed is False
+    assert "explicitly denied" in reason
+    
+    # 2. Blocked by REQUIRE_APPROVAL policy
+    req2 = JSONRPCRequest(id=2, method="tools/call", params={"name": "warn_tool", "arguments": {}})
+    is_allowed, reason = proxy.inspect_request(req2)
+    assert is_allowed is False
+    assert "requires explicit approval" in reason
+    
+    # 3. Allowed by ALLOW policy
+    req3 = JSONRPCRequest(id=3, method="tools/call", params={"name": "good_tool", "arguments": {}})
+    is_allowed, reason = proxy.inspect_request(req3)
+    assert is_allowed is True

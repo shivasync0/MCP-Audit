@@ -70,3 +70,34 @@ class PolicyEngine:
                 
         # 3. Fallback to default action
         return self.default_action
+
+    def evaluate_tools(self, server: MCPServer, findings: List[Finding]) -> Dict[str, PolicyAction]:
+        """Evaluate policy on a per-tool basis, returning a map of tool_id (as string) to PolicyAction."""
+        tool_actions = {}
+        
+        # Initialize all tools with default action
+        for tool in server.tools:
+            tool_actions[str(tool.id)] = self.default_action
+            
+        # Override based on findings
+        for finding in findings:
+            if not finding.tool_id:
+                continue
+                
+            tool_id_str = str(finding.tool_id)
+            current_action = tool_actions.get(tool_id_str, self.default_action)
+            
+            # DENY overrides everything
+            if finding.rule_id in self.condition.disallowed_rules:
+                tool_actions[tool_id_str] = PolicyAction.DENY
+            # REQUIRE_APPROVAL overrides ALLOW
+            elif finding.rule_id in self.condition.require_approval_rules and current_action != PolicyAction.DENY:
+                tool_actions[tool_id_str] = PolicyAction.REQUIRE_APPROVAL
+                
+        # If the whole server is denied based on score, deny all tools
+        server_action = self.evaluate(server, findings)
+        if server_action == PolicyAction.DENY:
+            for tool_id_str in tool_actions:
+                tool_actions[tool_id_str] = PolicyAction.DENY
+                
+        return tool_actions
