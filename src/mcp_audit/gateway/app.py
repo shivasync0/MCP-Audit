@@ -5,8 +5,11 @@ from fastapi.responses import JSONResponse
 import json
 from mcp_audit.gateway.models import JSONRPCRequest
 from mcp_audit.gateway.proxy import SecurityGatewayProxy
+from mcp_audit.api.routers import router as api_router
 
-app = FastAPI(title="MCP-Audit Security Gateway")
+app = FastAPI(title="MCP-Audit Security Gateway and Control Plane")
+app.include_router(api_router)
+
 proxy = SecurityGatewayProxy()
 
 def configure_proxy(tool_policies: dict):
