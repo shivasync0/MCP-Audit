@@ -1,0 +1,8 @@
+policy:
+  default_action: ALLOW
+  conditions:
+    max_exposure_score: 50.0
+    disallowed_rules:
+      - SEC-EXEC-001
+    require_approval_rules:
+      - SEC-FS-001

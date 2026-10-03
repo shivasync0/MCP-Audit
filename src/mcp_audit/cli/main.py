@@ -10,6 +10,7 @@ from mcp_audit.scanner.engine import ScannerEngine
 from mcp_audit.scanner.suppressions import SuppressionEngine
 from mcp_audit.graph.builder import SecurityGraphBuilder
 from mcp_audit.scanner.risk import RiskEngine
+from mcp_audit.scanner.policy import PolicyEngine, PolicyAction
 from rich.panel import Panel
 from rich.text import Text
 
@@ -66,6 +67,19 @@ def scan(
         risk_text.append(f"Operational Risk: {scores['operational_risk']:>5.1f}/100", style="bold yellow")
         
         console.print(Panel(risk_text, title="RISK ASSESSMENT", expand=False))
+        
+        # Evaluate Policy
+        policy_engine = PolicyEngine()
+        policy_decision = policy_engine.evaluate(server, findings)
+        
+        if policy_decision == PolicyAction.DENY:
+            decision_style = "bold white on red"
+        elif policy_decision == PolicyAction.REQUIRE_APPROVAL:
+            decision_style = "bold black on yellow"
+        else:
+            decision_style = "bold white on green"
+            
+        console.print(f"\n[bold]Policy Decision:[/bold] [{decision_style}] {policy_decision.value} [/{decision_style}]")
         
         # Handle baseline mode
         existing_findings_count = 0
