@@ -1,13 +1,15 @@
 from typing import Dict, Any, Tuple
 from mcp_audit.gateway.models import JSONRPCRequest, JSONRPCResponse
 from mcp_audit.scanner.policy import PolicyAction
+from mcp_audit.gateway.telemetry import AuditLogger
 import re
 
 class SecurityGatewayProxy:
     """Intercepts and inspects MCP JSON-RPC messages at runtime."""
     
-    def __init__(self, tool_policies: Dict[str, PolicyAction] = None):
+    def __init__(self, tool_policies: Dict[str, PolicyAction] = None, logger: AuditLogger = None):
         self.tool_policies = tool_policies or {}
+        self.logger = logger or AuditLogger()
         # Basic regexes for dynamic payload inspection (DAST)
         self.COMMAND_INJECTION_PATTERN = re.compile(r'(&&|;|\|\||`|\$\(|\n)', re.IGNORECASE)
         self.PATH_TRAVERSAL_PATTERN = re.compile(r'(\.\./|\.\.\\)', re.IGNORECASE)
@@ -17,14 +19,22 @@ class SecurityGatewayProxy:
         Inspects an incoming request. 
         Returns (is_allowed, reason).
         """
+        is_allowed, reason = True, "Allowed"
+        
         if request.method == "tools/call":
-            return self._inspect_tool_call(request)
-            
+            is_allowed, reason = self._inspect_tool_call(request)
         elif request.method == "resources/read":
-            return self._inspect_resource_read(request)
+            is_allowed, reason = self._inspect_resource_read(request)
             
-        # By default, allow other methods
-        return True, "Allowed"
+        action = "ALLOW" if is_allowed else "BLOCK"
+        
+        tool_name = None
+        if request.params and "name" in request.params:
+            tool_name = request.params["name"]
+            
+        self.logger.log_event(action, reason, request, tool_name)
+        
+        return is_allowed, reason
 
     def _inspect_tool_call(self, request: JSONRPCRequest) -> Tuple[bool, str]:
         """Inspects parameters sent to a tool for malicious payloads and checks static policy."""
