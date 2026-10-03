@@ -5,12 +5,14 @@ from fastapi.responses import JSONResponse
 import json
 from mcp_audit.gateway.models import JSONRPCRequest
 from mcp_audit.gateway.proxy import SecurityGatewayProxy
+from mcp_audit.gateway.forwarder import ForwardingEngine
 from mcp_audit.api.routers import router as api_router
 
 app = FastAPI(title="MCP-Audit Security Gateway and Control Plane")
 app.include_router(api_router)
 
 proxy = SecurityGatewayProxy()
+forwarder = ForwardingEngine()
 
 def configure_proxy(tool_policies: dict):
     """Dynamically configure the proxy (e.g. from the CLI)."""
@@ -38,12 +40,10 @@ async def intercept_rpc(request: Request):
         error_resp = proxy.create_error_response(rpc_req.id, -32000, f"Blocked by MCP-Audit: {reason}")
         return JSONResponse(status_code=200, content=error_resp.model_dump())
         
-    # If allowed, we would normally forward this to the actual MCP Server
-    # For now, since this is the proxy scaffolding, we mock the forwarding
-    
-    # ... forwarding logic to real server ...
+    # If allowed, forward this to the actual MCP Server
+    success_resp = await forwarder.forward_request(rpc_req)
     
     return JSONResponse(
         status_code=200,
-        content={"jsonrpc": "2.0", "id": rpc_req.id, "result": "Request forwarded and executed (mock)"}
+        content=success_resp.model_dump()
     )
