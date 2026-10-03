@@ -77,7 +77,7 @@ class Tool(BaseEntity):
     server_id: UUID
     name: str
     description: Optional[str] = None
-    input_schema: Dict[str, Any] = Field(default_factory=dict)
+    input_schema: Any = Field(default_factory=dict)
     capabilities: List[Capability] = Field(default_factory=list)
     risk_score: Optional[float] = None
 
