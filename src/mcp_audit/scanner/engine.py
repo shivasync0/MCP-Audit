@@ -4,6 +4,10 @@ from typing import List, Type
 from mcp_audit.models.core import MCPServer, Finding
 from mcp_audit.scanner.rules.base import SecurityRule
 from mcp_audit.scanner.rules.protocol import MalformedToolSchemaRule, SchemaBombRule
+from mcp_audit.scanner.rules.execution import ShellExecutionRule
+from mcp_audit.scanner.rules.filesystem import ArbitraryFilesystemAccessRule
+from mcp_audit.scanner.rules.network import ArbitraryNetworkAccessRule
+from mcp_audit.scanner.rules.credential import CredentialAccessRule
 
 class ScannerEngine:
     """Evaluates an MCP Server against a suite of security rules."""
@@ -15,6 +19,10 @@ class ScannerEngine:
         rule_classes = [
             MalformedToolSchemaRule,
             SchemaBombRule,
+            ShellExecutionRule,
+            ArbitraryFilesystemAccessRule,
+            ArbitraryNetworkAccessRule,
+            CredentialAccessRule,
         ]
         
         if custom_rules:
